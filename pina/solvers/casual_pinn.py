@@ -66,26 +66,27 @@ class CasualPINN(PINN):
         if not hasattr(self.problem, 'temporal_domain'):
             raise ValueError('Casual PINN works only for problems inheritig from TimeDependentProblem.')
 
-        # create a copy of the loss function without reduction
-        # self._not_reduced_loss = deepcopy(self.loss)
-        # self._not_reduced_loss.reduction = 'none'
-
-
-    def _split_tensor_into_chunks(self, tensor):
+    # TODO add a flag for optimization
+    def _sort_label_tensor(self, tensor):
+        # labels input tensors
+        labels = tensor.labels
         # extract time tensor
         time_tensor = tensor.extract(self.problem.temporal_domain.variables)
-        # sort the time tensors
+        # sort the time tensors (this is very bad for GPU)
         _, idx = torch.sort(time_tensor.tensor.flatten())
         tensor = tensor[idx]
-        tensor.labels = ['x', 't']
-        # find chunks of same time step variable
-        chunks = []
-        start_idx = 0
-        for i in range(1, len(time_tensor)):
-            if not torch.equal(time_tensor[i], time_tensor[start_idx]): # if two time variables are not equal
-                chunks.append(tensor[start_idx:i]) # create a new chunk
-                start_idx = i
-        chunks.append(tensor[start_idx:])
+        tensor.labels = labels
+        return tensor
+
+    def _split_tensor_into_chunks(self, tensor):
+        # labels input tensors
+        tensor = self._sort_label_tensor(tensor)
+        # extract time tensor
+        time_tensor = tensor.extract(self.problem.temporal_domain.variables)
+        # count unique tensors in time
+        _, idx_split = time_tensor.unique(return_counts=True)
+        # splitting
+        chunks = torch.split(tensor, tuple(idx_split))
         return chunks # return chunks
     
     def _compute_weights(self, loss):
@@ -102,6 +103,7 @@ class CasualPINN(PINN):
         # concataning the residuals we obtain a tensor of shape #chunks
         time_loss = []
         for chunk in chunks:
+            chunk.labels = self.problem.input_variables
             try:
                 residual = equation.residual(chunk, self.forward(chunk))
             except TypeError: # this occurs when the function has three inputs, i.e. inverse problem
