@@ -1,5 +1,6 @@
 __all__ = [
     'PINN',
+    'WeakPINN',
     'GAROM',
     'SupervisedSolver',
     'SolverInterface'
@@ -8,5 +9,6 @@ __all__ = [
 
 from .garom import GAROM
 from .pinn import PINN
+from .wpinn import WeakPINN
 from .supervised import SupervisedSolver
 from .solver import SolverInterface
