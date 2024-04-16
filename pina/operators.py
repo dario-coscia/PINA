@@ -9,9 +9,26 @@ for (in case of multidimensional functions), and the variables name on which the
 import torch
 
 from pina.label_tensor import LabelTensor
+from typing import List, Optional
 
 
-def grad(output_, input_, components=None, d=None):
+from torch.jit.annotations import List as TorchList
+from torch.jit.annotations import TensorType
+
+@torch.jit.script
+def fast_grad(y: torch.Tensor, x: torch.Tensor) -> Optional[torch.Tensor]:
+    grad_outputs : List[Optional[torch.Tensor]] = [ torch.ones_like(y) ]
+    grad = torch.autograd.grad([y,], [x], grad_outputs=grad_outputs, create_graph=True, allow_unused=True, retain_graph=True)
+    
+    # optional type refinement using an if statement
+    if grad is not None:
+        grad = grad[0]
+        
+    return grad # grad can be None here, so it is Optional[torch.Tensor]
+
+
+# @profile
+def grad(output_, input_, components = None, d = None):
     """
     Perform gradient operation. The operator works for vectorial and scalar
     functions, with multiple input coordinates.
@@ -30,7 +47,7 @@ def grad(output_, input_, components=None, d=None):
     :return: the gradient tensor.
     :rtype: LabelTensor
     """
-
+    # @profile
     def grad_scalar_output(output_, input_, d):
         """
         Perform gradient operation for a scalar output.
@@ -55,6 +72,8 @@ def grad(output_, input_, components=None, d=None):
             raise RuntimeError("derivative labels missing from input tensor")
 
         output_fieldname = output_.labels[0]
+        # gradients = fast_grad(output_, input_)
+        # gradients = gradients.as_subclass(LabelTensor)
         gradients = torch.autograd.grad(
             output_,
             input_,
@@ -65,7 +84,6 @@ def grad(output_, input_, components=None, d=None):
             retain_graph=True,
             allow_unused=True,
         )[0]
-
         gradients.labels = input_.labels
         gradients = gradients.extract(d)
         gradients.labels = [f"d{output_fieldname}d{i}" for i in d]
@@ -102,7 +120,7 @@ def grad(output_, input_, components=None, d=None):
 
     return gradients
 
-
+# @profile
 def div(output_, input_, components=None, d=None):
     """
     Perform divergence operation. The operator works for vectorial functions,
@@ -153,7 +171,7 @@ def div(output_, input_, components=None, d=None):
     div.labels = ["+".join(labels)]
     return div
 
-
+# @promfile
 def laplacian(output_, input_, components=None, d=None, method="std"):
     """
     Compute Laplace operator. The operator works for vectorial and
@@ -222,7 +240,7 @@ def laplacian(output_, input_, components=None, d=None, method="std"):
     result.labels = labels
     return result
 
-
+# @profile
 def advection(output_, input_, velocity_field, components=None, d=None):
     """
     Perform advection operation. The operator works for vectorial functions,
