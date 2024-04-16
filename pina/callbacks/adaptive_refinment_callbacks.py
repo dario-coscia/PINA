@@ -8,7 +8,7 @@ from ..utils import check_consistency
 
 class R3Refinement(Callback):
 
-    def __init__(self, sample_every):
+    def __init__(self, sample_every, locations=None):
         """
         PINA Implementation of an R3 Refinement Callback.
 
@@ -28,6 +28,10 @@ class R3Refinement(Callback):
             <https://doi.org/10.48550/arXiv.2207.02338>`_
 
         :param int sample_every: Frequency for sampling.
+        :param list[str] locations: Locations to resample every ``locations``
+            iterations, default to ``None``. If ``None`` all the variables are
+            resampled.
+
         :raises ValueError: If `sample_every` is not an integer.
 
         Example:
@@ -38,6 +42,9 @@ class R3Refinement(Callback):
         # sample every
         check_consistency(sample_every, int)
         self._sample_every = sample_every
+        if locations is not None:
+            check_consistency(locations, str)
+        self._sampling_locations = locations
 
     def _compute_residual(self, trainer):
         """
@@ -148,15 +155,26 @@ class R3Refinement(Callback):
         :return: None
         :rtype: None
         """
-        # extract locations for sampling
-        problem = trainer._model.problem
-        locations = []
-        for condition_name in problem.conditions:
-            condition = problem.conditions[condition_name]
-            if hasattr(condition, "location"):
-                locations.append(condition_name)
-        self._sampling_locations = locations
-
+        # extract all locations if no locations are passed in the init
+        if self._sampling_locations is None:
+            locations = []
+            for condition_name in trainer._model.problem.conditions:
+                condition = trainer._model.problem.conditions[condition_name]
+                if hasattr(condition, "location"):
+                    locations.append(condition_name)
+            self._sampling_locations = locations
+        
+        # check that the given locations can be sampled
+        for condition_name in self._sampling_locations:
+            condition = trainer._model.problem.conditions[condition_name]
+            if not hasattr(condition, "location"):
+                raise RuntimeError(
+                                'The locations variable provided cannot '
+                                'be sampled. Ensure that for the provided '
+                                'locations the corresponding problem '
+                                'condition have a suitable location object.'
+                                )
+            
         # extract total population
         total_population = 0
         for location in self._sampling_locations:
@@ -180,3 +198,101 @@ class R3Refinement(Callback):
         """
         if trainer.current_epoch % self._sample_every == 0:
             self._r3_routine(trainer)
+
+
+
+class DynamicPointsRefinement(Callback):
+
+    def __init__(self, sample_every, locations=None):
+        """
+        PINA Implementation of Dynamic Refinment Callback.
+
+        This callback implements the a refinment routine for
+        sampling new points inside the domain every ``sample_every`` iterations.
+        The algorithm sampled uniformly in all regions
+        where sampling is needed (which can be specified by ``locations``).
+
+        .. seealso::
+
+            Original Reference: Daw, Arka, et al. *Mitigating Propagation
+            Failures in Physics-informed Neural Networks
+            using Retain-Resample-Release (R3) Sampling. (2023)*.
+            DOI: `10.48550/arXiv.2207.02338
+            <https://doi.org/10.48550/arXiv.2207.02338>`_
+
+        :param int sample_every: Frequency for sampling.
+        :param list[str] locations: Locations to resample every ``locations``
+            iterations, default to ``None``. If ``None`` all the variables are
+            resampled.
+
+        :raises ValueError: If `sample_every` is not an integer.
+
+        Example:
+            >>> dynamic_ref_callback = DynamicPointRefinement(sample_every=5)
+        """
+        super().__init__()
+
+        # sample every
+        check_consistency(sample_every, int)
+        self._sample_every = sample_every
+        if locations is not None:
+            check_consistency(locations, str)
+        self._sampling_locations = locations
+
+
+    def on_train_start(self, trainer, _):
+        """
+        Callback function called at the start of training.
+
+        This method extracts the locations for sampling from the problem
+        conditions and calculates the total population.
+
+        :param trainer: The trainer object managing the training process.
+        :type trainer: pytorch_lightning.Trainer
+        :param _: Placeholder argument (not used).
+        """
+        # extract all locations if no locations are passed in the init
+        if self._sampling_locations is None:
+            locations = []
+            for condition_name in trainer._model.problem.conditions:
+                condition = trainer._model.problem.conditions[condition_name]
+                if hasattr(condition, "location"):
+                    locations.append(condition_name)
+            self._sampling_locations = locations
+        
+        # check that the given locations can be sampled
+        for condition_name in self._sampling_locations:
+            condition = trainer._model.problem.conditions[condition_name]
+            if not hasattr(condition, "location"):
+                raise RuntimeError(
+                                'The locations variable provided cannot '
+                                'be sampled. Ensure that for the provided '
+                                'locations the corresponding problem '
+                                'condition have a suitable location object.'
+                                )
+
+    def on_train_epoch_end(self, trainer, __):
+        """
+        Callback function called at the end of each training epoch.
+
+        This method triggers the R3 routine for refinement if the current
+        epoch is a multiple of `_sample_every`.
+
+        :param trainer: The trainer object managing the training process.
+        :type trainer: pytorch_lightning.Trainer
+        :param __: Placeholder argument (not used).
+
+        :return: None
+        :rtype: None
+        """
+        if trainer.current_epoch % self._sample_every == 0:
+            # sample in each location
+            for condition_name in self._sampling_locations:
+                pts = trainer._model.problem.input_pts[condition_name]
+                number_of_points = len(pts)
+                trainer._model.problem.discretise_domain(
+                number_of_points, "random", locations=[condition_name]
+            )
+        # update dataloader
+        trainer._create_or_update_loader()
+

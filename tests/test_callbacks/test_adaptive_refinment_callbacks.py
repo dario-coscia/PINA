@@ -1,4 +1,4 @@
-from pina.callbacks import R3Refinement
+from pina.callbacks import R3Refinement, DynamicPointsRefinement
 import torch
 import pytest
 
@@ -63,6 +63,8 @@ model = FeedForward(len(poisson_problem.input_variables),
 solver = PINN(problem=poisson_problem, model=model)
 
 
+
+################### R3 Refinment #####################
 def test_r3constructor():
     R3Refinement(sample_every=10)
 
@@ -74,6 +76,20 @@ def test_r3refinment_routine():
                       max_epochs=5)
     trainer.train()
 
+def test_r3refinment_routine_few_locations():
+    # make the trainer
+    with pytest.raises(RuntimeError):
+        trainer = Trainer(solver=solver,
+                        callbacks=[R3Refinement(sample_every=1, locations=['D'])],
+                        max_epochs=5)
+        trainer.train()
+
+    # correct location
+    trainer = Trainer(solver=solver,
+                    callbacks=[R3Refinement(sample_every=1, locations=['gamma1'])],
+                    max_epochs=5)
+    trainer.train()
+
 def test_r3refinment_routine_double_precision():
     model = FeedForward(len(poisson_problem.input_variables),
                     len(poisson_problem.output_variables))
@@ -82,5 +98,42 @@ def test_r3refinment_routine_double_precision():
                       precision='64-true',
                       accelerator='cpu',
                       callbacks=[R3Refinement(sample_every=2)],
+                      max_epochs=5)
+    trainer.train()
+
+################### Dynamic Refinment #####################
+def test_dynamic_constructor():
+    DynamicPointsRefinement(sample_every=10)
+
+
+def test_dynamic_refinment_routine():
+    # make the trainer
+    trainer = Trainer(solver=solver,
+                      callbacks=[DynamicPointsRefinement(sample_every=1)],
+                      max_epochs=5)
+    trainer.train()
+
+def test_dynamic_refinment_routine_few_locations():
+    # make the trainer
+    with pytest.raises(RuntimeError):
+        trainer = Trainer(solver=solver,
+                        callbacks=[DynamicPointsRefinement(sample_every=1, locations=['D'])],
+                        max_epochs=5)
+        trainer.train()
+
+    # correct location
+    trainer = Trainer(solver=solver,
+                    callbacks=[DynamicPointsRefinement(sample_every=1, locations=['gamma1'])],
+                    max_epochs=5)
+    trainer.train()
+
+def test_dynamic_refinment_routine_double_precision():
+    model = FeedForward(len(poisson_problem.input_variables),
+                    len(poisson_problem.output_variables))
+    solver = PINN(problem=poisson_problem, model=model)
+    trainer = Trainer(solver=solver,
+                      precision='64-true',
+                      accelerator='cpu',
+                      callbacks=[DynamicPointsRefinement(sample_every=2)],
                       max_epochs=5)
     trainer.train()
