@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pina.model.network &mdash; PINA 0.1.0.post2405 documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/language_data.js"></script>
+        <script src="../../../_static/clipboard.min.js"></script>
+        <script src="../../../_static/copybutton.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html">
+            
+              <img src="../../../_static/pina_logo.png" class="logo" alt="Logo"/>
+          </a>
+              <div class="version">
+                0.1.0.post2405
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Package Documentation:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../_rst/_code.html">API</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Getting Started:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../_rst/_installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_rst/_tutorial.html">Tutorials</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Community:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../_team.html">Team &amp; Fundings</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_rst/_contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_LICENSE.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_cite.html">Cite PINA</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">PINA</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">pina.model.network</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for pina.model.network</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">check_consistency</span>
+<span class="kn">from</span> <span class="nn">..label_tensor</span> <span class="kn">import</span> <span class="n">LabelTensor</span>
+
+
+<div class="viewcode-block" id="Network"><a class="viewcode-back" href="../../../_rst/models/network.html#pina.model.network.Network">[docs]</a><span class="k">class</span> <span class="nc">Network</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">input_variables</span><span class="p">,</span> <span class="n">output_variables</span><span class="p">,</span> <span class="n">extra_features</span><span class="o">=</span><span class="kc">None</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Network class with standard forward method</span>
+<span class="sd">        and possibility to pass extra features. This</span>
+<span class="sd">        class is used internally in PINA to convert</span>
+<span class="sd">        any :class:`torch.nn.Module` s in a PINA module.</span>
+
+<span class="sd">        :param model: The torch model to convert in a PINA model.</span>
+<span class="sd">        :type model: torch.nn.Module</span>
+<span class="sd">        :param list(str) input_variables: The input variables of the :class:`AbstractProblem`, whose type depends on the</span>
+<span class="sd">            type of domain (spatial, temporal, and parameter).</span>
+<span class="sd">        :param list(str) output_variables: The output variables of the :class:`AbstractProblem`, whose type depends on the</span>
+<span class="sd">            problem setting.</span>
+<span class="sd">        :param extra_features: List of torch models to augment the input, defaults to None.</span>
+<span class="sd">        :type extra_features: list(torch.nn.Module)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="c1"># check model consistency</span>
+        <span class="n">check_consistency</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">)</span>
+        <span class="n">check_consistency</span><span class="p">(</span><span class="n">input_variables</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+        <span class="n">check_consistency</span><span class="p">(</span><span class="n">output_variables</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_input_variables</span> <span class="o">=</span> <span class="n">input_variables</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_output_variables</span> <span class="o">=</span> <span class="n">output_variables</span>
+
+        <span class="c1"># check consistency and assign extra fatures</span>
+        <span class="k">if</span> <span class="n">extra_features</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_extra_features</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">feat</span> <span class="ow">in</span> <span class="n">extra_features</span><span class="p">:</span>
+                <span class="n">check_consistency</span><span class="p">(</span><span class="n">feat</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_extra_features</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="o">*</span><span class="n">extra_features</span><span class="p">)</span>
+
+        <span class="c1"># check model works with inputs</span>
+        <span class="c1"># TODO</span>
+
+<div class="viewcode-block" id="Network.forward"><a class="viewcode-back" href="../../../_rst/models/network.html#pina.model.network.Network.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Forward method for Network class. This class</span>
+<span class="sd">        implements the standard forward method, and</span>
+<span class="sd">        it adds the possibility to pass extra features.</span>
+<span class="sd">        All the PINA models ``forward`` s are overriden</span>
+<span class="sd">        by this class, to enable :class:`pina.label_tensor.LabelTensor` labels</span>
+<span class="sd">        extraction.</span>
+
+<span class="sd">        :param torch.Tensor x: Input of the network.</span>
+<span class="sd">        :return torch.Tensor: Output of the network.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># only labeltensors as input</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">LabelTensor</span>
+        <span class="p">),</span> <span class="s2">&quot;Expected LabelTensor as input to the model.&quot;</span>
+
+        <span class="c1"># extract torch.Tensor from corresponding label</span>
+        <span class="c1"># in case `input_variables = []` all points are used</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input_variables</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">extract</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_input_variables</span><span class="p">)</span>
+
+        <span class="c1"># extract features and append</span>
+        <span class="k">for</span> <span class="n">feature</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extra_features</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">feature</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+
+        <span class="c1"># perform forward pass + converting to LabelTensor</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">as_subclass</span><span class="p">(</span><span class="n">LabelTensor</span><span class="p">)</span>
+
+        <span class="c1"># set the labels for LabelTensor</span>
+        <span class="n">output</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_output_variables</span>
+
+        <span class="k">return</span> <span class="n">output</span></div>
+
+    <span class="c1"># TODO to remove in next releases (only used in GAROM solver)</span>
+<div class="viewcode-block" id="Network.forward_map"><a class="viewcode-back" href="../../../_rst/models/network.html#pina.model.network.Network.forward_map">[docs]</a>    <span class="k">def</span> <span class="nf">forward_map</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Forward method for Network class when the input is</span>
+<span class="sd">        a tuple. This class is simply a forward with the input casted as a</span>
+<span class="sd">        tuple or list :class`torch.Tensor`.</span>
+<span class="sd">        All the PINA models ``forward`` s are overriden</span>
+<span class="sd">        by this class, to enable :class:`pina.label_tensor.LabelTensor` labels</span>
+<span class="sd">        extraction.</span>
+
+<span class="sd">        :param list (torch.Tensor) | tuple(torch.Tensor) x: Input of the network.</span>
+<span class="sd">        :return torch.Tensor: Output of the network.</span>
+
+<span class="sd">        .. note::</span>
+<span class="sd">            This function does not extract the input variables, all the variables</span>
+<span class="sd">            are used for both tensors. Output variables are correctly applied.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># convert LabelTensor s to torch.Tensor s</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">as_subclass</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">),</span> <span class="n">x</span><span class="p">))</span>
+
+        <span class="c1"># perform forward pass (using torch.Tensor) + converting to LabelTensor</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">as_subclass</span><span class="p">(</span><span class="n">LabelTensor</span><span class="p">)</span>
+
+        <span class="c1"># set the labels for LabelTensor</span>
+        <span class="n">output</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_output_variables</span>
+
+        <span class="k">return</span> <span class="n">output</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">torchmodel</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">extra_features</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extra_features</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021-2024, PINA Contributors.
+      <span class="lastupdated">Last updated on May 02, 2024.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
