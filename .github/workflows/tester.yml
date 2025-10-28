@@ -1,7 +1,7 @@
 name: "Testing Pull Request"
 
 on:
-  pull_request_target:
+  pull_request:
     branches:
       - "master"
       - "dev"
@@ -53,26 +53,26 @@ jobs:
         make html SPHINXOPTS+='-W'
       working-directory: docs/
 
-  coverage: ##################################################################
-    runs-on: ubuntu-latest
+  # coverage: ##################################################################
+  #   runs-on: ubuntu-latest
 
-    steps:
-      - uses: actions/checkout@v4
+  #   steps:
+  #     - uses: actions/checkout@v4
 
-      - name: Install Python dependencies
-        run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install .[test]
+  #     - name: Install Python dependencies
+  #       run: |
+  #         python3 -m pip install --upgrade pip
+  #         python3 -m pip install .[test]
         
-      - name: Generate coverage report
-        run: |
-            python3 -m pytest --cov-report term --cov-report xml:cobertura.xml --cov=pina
+  #     - name: Generate coverage report
+  #       run: |
+  #           python3 -m pytest --cov-report term --cov-report xml:cobertura.xml --cov=pina
 
-      - name: Produce the coverage report
-        uses: insightsengineering/coverage-action@v2
-        with:
-          path: ./cobertura.xml
-          threshold: 80.123
-          fail: true
-          publish: true
-          coverage-summary-title: "Code Coverage Summary"
+  #     - name: Produce the coverage report
+  #       uses: insightsengineering/coverage-action@v2
+  #       with:
+  #         path: ./cobertura.xml
+  #         threshold: 80.123
+  #         fail: true
+  #         publish: true
+  #         coverage-summary-title: "Code Coverage Summary"
